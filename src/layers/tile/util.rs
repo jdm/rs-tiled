@@ -22,7 +22,11 @@ pub(crate) fn parse_data_line(
             .map(|v| convert_to_tiles(&v, tilesets)),
         #[cfg(feature = "zstd")]
         (Some("base64"), Some("zstd")) => parse_base64(parser)
-            .and_then(|data| process_decoder(zstd::stream::read::Decoder::with_buffer(&data[..])))
+            .and_then(|data| {
+                let decoder = ruzstd::StreamingDecoder::new(&data[..])
+                    .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e));
+                process_decoder(decoder)
+            })
             .map(|v| convert_to_tiles(&v, tilesets)),
 
         _ => Err(Error::InvalidEncodingFormat {
